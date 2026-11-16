@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Garage Log</title>
+<style>
+  :root { --bg:#14161a; --surface:#1d2024; --raised:#24282d; --line:#33383f; --text:#ece8e0; --dim:#8d9299; --amber:#e8a33d; --amber-dim:#a9793a; --red:#c9583f; --green:#6f9c76; --blue:#5a9bd4;
+    --sans:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; --cond:'Arial Narrow','Helvetica Neue',sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased;
+    padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0); }
+  .hidden { display:none !important; }
+  input, select, textarea { width:100%; background:var(--raised); border:1px solid var(--line); color:var(--text); font:inherit; font-size:1rem;
+    padding:12px 14px; border-radius:8px; margin-bottom:10px; }
+  input:focus, select:focus, textarea:focus { outline:2px solid var(--amber); outline-offset:1px; }
+  textarea { resize:vertical; min-height:48px; font-size:.92rem; }
+  button { font:inherit; font-weight:600; font-size:.95rem; border:none; border-radius:8px; padding:13px 16px; cursor:pointer; }
+  .primary { background:var(--amber); color:#1a1305; width:100%; } .primary:hover { background:#f0ae4b; } .primary:disabled { opacity:.6; }
+  .link { background:none; color:var(--dim); padding:4px; font-weight:400; font-size:.85rem; } .link:hover { color:var(--text); }
+  .err { color:var(--red); font-size:.85rem; min-height:1.3em; margin-bottom:6px; }
+  .label { font-size:.78rem; color:var(--dim); display:block; margin-bottom:6px; }
+  .num { font-family:var(--cond); font-weight:600; letter-spacing:.01em; }
+
+  #v-auth { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .auth-card { width:100%; max-width:340px; text-align:center; }
+  .dial { width:84px; height:84px; margin:0 auto 20px; border-radius:50%; border:3px solid var(--line); position:relative; }
+  .dial::after { content:''; position:absolute; top:10px; left:50%; width:3px; height:30px; background:var(--amber); border-radius:2px;
+    transform-origin:bottom center; transform:translateX(-50%) rotate(35deg); }
+  .auth-card h1 { font-family:var(--cond); font-size:1.5rem; margin:0 0 6px; }
+  .auth-card p { color:var(--dim); font-size:.9rem; margin:0 0 22px; }
+
+  #app { max-width:720px; margin:0 auto; padding:24px 20px 60px; }
+  #topbar { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:22px; }
+  #topbar h1 { font-family:var(--cond); font-size:1.4rem; margin:0; }
+  .grid { display:grid; gap:14px; }
+  .vcard { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; cursor:pointer; }
+  .vcard:hover { border-color:var(--amber-dim); }
+  .vtop { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .vcard h2 { font-family:var(--cond); font-size:1.15rem; font-weight:500; margin:0 0 2px; }
+  .sub { color:var(--dim); font-size:.85rem; }
+  .miles { font-size:1.6rem; color:var(--amber); text-align:right; } .miles small { display:block; font-family:var(--sans); font-weight:400; font-size:.7rem; color:var(--dim); }
+  .stats { display:flex; gap:18px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+  .stat { font-size:.78rem; color:var(--dim); } .stat b { display:block; color:var(--text); font-size:.88rem; font-weight:500; margin-top:2px; }
+  .empty { text-align:center; padding:44px 20px; color:var(--dim); border:1px dashed var(--line); border-radius:10px; }
+  .add { background:var(--surface); border:1px dashed var(--line); color:var(--dim); width:100%; margin-top:14px; } .add:hover { color:var(--amber); border-color:var(--amber-dim); }
+
+  .back { background:none; color:var(--dim); padding:4px 0; font-weight:400; margin-bottom:14px; } .back:hover { color:var(--amber); }
+  .vhead h2 { font-family:var(--cond); font-size:1.6rem; margin:0 0 4px; }
+  .vhead .big { font-size:1.8rem; color:var(--amber); margin-top:10px; } .vhead .big small { font-family:var(--sans); font-weight:400; font-size:.8rem; color:var(--dim); }
+  .box { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; margin:18px 0 22px; }
+  .row { display:flex; gap:10px; } .row > * { flex:1; min-width:0; }
+  .entry { display:flex; gap:14px; padding-bottom:22px; position:relative; }
+  .entry:not(:last-child)::before { content:''; position:absolute; left:5px; top:22px; bottom:0; width:1px; background:var(--line); }
+  .dot { width:11px; height:11px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+  .dot.oil { background:var(--amber); } .dot.mechanic { background:var(--red); } .dot.wash { background:var(--blue); } .dot.other { background:var(--green); }
+  .eb { flex:1; } .et { display:flex; justify-content:space-between; gap:8px; } .et b { font-size:.95rem; } .et span { color:var(--dim); font-size:.8rem; white-space:nowrap; }
+  .em { color:var(--dim); font-size:.82rem; margin-top:2px; } .en { font-size:.88rem; margin-top:5px; line-height:1.4; white-space:pre-wrap; }
+  .del { background:none; color:var(--dim); font-size:.75rem; font-weight:400; padding:0; margin-top:6px; } .del:hover { color:var(--red); }
+  .danger { color:var(--red); margin-top:30px; }
+
+  dialog { background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:20px; width:min(92vw,380px); }
+  dialog::backdrop { background:rgba(0,0,0,.6); } dialog h3 { font-family:var(--cond); margin:0 0 14px; font-size:1.2rem; }
+  .ghost { background:transparent; border:1px solid var(--line); color:var(--dim); }
+</style>
+</head>
+<body>
+
+<div id="v-auth" class="hidden">
+  <form class="auth-card" id="auth-form">
+    <div class="dial"></div>
+    <h1 id="auth-title">Garage Log</h1>
+    <p id="auth-sub"></p>
+    <div class="err" id="auth-err"></div>
+    <input id="a-user" placeholder="Username" autocomplete="username" autocapitalize="none" required>
+    <input id="a-pass" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="primary" id="auth-btn" type="submit">Sign in</button>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <div id="topbar">
+    <h1>Garage Log</h1>
+    <button class="link" id="logout">Sign out</button>
+  </div>
+
+  <div id="v-garage">
+    <div class="grid" id="vgrid"></div>
+    <button class="add" id="add-v">+ Add a vehicle</button>
+  </div>
+
+  <div id="v-vehicle" class="hidden">
+    <button class="back" id="back">&larr; All vehicles</button>
+    <div class="vhead">
+      <h2 id="vh-name"></h2><div class="sub" id="vh-sub"></div>
+      <div class="big num"><span id="vh-miles"></span> <small>miles</small></div>
+    </div>
+    <div class="box">
+      <span class="label">Log something</span>
+      <select id="l-type">
+        <option value="oil">Oil change</option><option value="mechanic">Mechanic visit</option>
+        <option value="wash">Car wash</option><option value="other">Other</option>
+      </select>
+      <div class="row"><input type="date" id="l-date"><input type="number" id="l-miles" placeholder="Mileage" inputmode="numeric"></div>
+      <textarea id="l-notes" placeholder="Notes (what was done, cost, shop name...)"></textarea>
+      <div class="err" id="l-err"></div>
+      <button class="primary" id="l-add">Add entry</button>
+    </div>
+    <div id="timeline"></div>
+    <button class="link danger" id="del-v">Delete this vehicle</button>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form id="v-form">
+    <h3>Add a vehicle</h3>
+    <input id="f-name" placeholder="Nickname (e.g. Daily driver)" required>
+    <div class="row"><input id="f-year" placeholder="Year" inputmode="numeric"><input id="f-make" placeholder="Make"></div>
+    <input id="f-model" placeholder="Model">
+    <input id="f-miles" type="number" placeholder="Current mileage" inputmode="numeric">
+    <div class="err" id="f-err"></div>
+    <div class="row"><button type="button" class="ghost" id="f-cancel">Cancel</button><button class="primary" type="submit">Add</button></div>
+  </form>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => (s == null ? '' : String(s)).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LABEL = { oil: 'Oil change', mechanic: 'Mechanic visit', wash: 'Car wash', other: 'Other' };
+let vehicles = [], current = null, authMode = 'login';
+
+async function api(path, method = 'GET', body) {
+  const r = await fetch(path, { method, credentials: 'same-origin',
+    headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || 'Something went wrong'); e.status = r.status; throw e; }
+  return j;
+}
+const fmtMiles = (n) => (n == null ? '—' : Number(n).toLocaleString());
+const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+function rel(iso) {
+  if (!iso) return 'never';
+  const d = Math.floor((Date.now() - new Date(iso + 'T00:00:00')) / 864e5);
+  if (d <= 0) return 'today'; if (d === 1) return '1 day ago'; if (d < 30) return d + ' days ago';
+  const m = Math.floor(d / 30); return m < 12 ? m + ' mo ago' : Math.floor(m / 12) + ' yr ago';
+}
+function view(name) {
+  $('v-auth').classList.toggle('hidden', name !== 'auth');
+  $('app').classList.toggle('hidden', name === 'auth');
+  $('v-garage').classList.toggle('hidden', name !== 'garage');
+  $('v-vehicle').classList.toggle('hidden', name !== 'vehicle');
+}
+
+/* ---------- auth ---------- */
+function showAuth(canRegister) {
+  authMode = canRegister ? 'register' : 'login';
+  $('auth-title').textContent = canRegister ? 'Create your account' : 'Welcome back';
+  $('auth-sub').textContent = canRegister ? 'This becomes the only account for your garage.' : 'Sign in to open your garage.';
+  $('auth-btn').textContent = canRegister ? 'Create account' : 'Sign in';
+  $('a-pass').autocomplete = canRegister ? 'new-password' : 'current-password';
+  $('a-pass').value = ''; $('auth-err').textContent = '';
+  view('auth');
+}
+$('auth-form').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('auth-err').textContent = ''; $('auth-btn').disabled = true;
+  try {
+    await api('/api/auth', 'POST', { action: authMode, username: $('a-user').value, password: $('a-pass').value });
+    await loadGarage();
+  } catch (err) { $('auth-err').textContent = err.message; }
+  $('auth-btn').disabled = false;
+});
+$('logout').addEventListener('click', async () => {
+  try { await api('/api/auth', 'POST', { action: 'logout' }); } catch {}
+  showAuth(false);
+});
+
+/* ---------- garage ---------- */
+async function loadGarage() {
+  try { vehicles = (await api('/api/vehicles')).vehicles; }
+  catch (err) { if (err.status === 401) return showAuth(false); alert(err.message); return; }
+  const g = $('vgrid');
+  g.innerHTML = vehicles.length ? '' : '<div class="empty">No vehicles yet. Add your first one to start logging.</div>';
+  vehicles.forEach((v) => {
+    const c = document.createElement('div'); c.className = 'vcard';
+    c.innerHTML = `<div class="vtop"><div><h2>${esc(v.name)}</h2><div class="sub">${esc([v.year, v.make, v.model].filter(Boolean).join(' '))}</div></div>
+      <div class="miles num">${fmtMiles(v.mileage)}<small>miles</small></div></div>
+      <div class="stats"><div class="stat">Oil change<b>${rel(v.last_oil)}</b></div><div class="stat">Mechanic<b>${rel(v.last_mechanic)}</b></div><div class="stat">Car wash<b>${rel(v.last_wash)}</b></div></div>`;
+    c.addEventListener('click', () => openVehicle(v.id));
+    g.appendChild(c);
+  });
+  view('garage');
+}
+$('add-v').addEventListener('click', () => { $('v-form').reset(); $('f-err').textContent = ''; $('dlg').showModal(); });
+$('f-cancel').addEventListener('click', () => $('dlg').close());
+$('v-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/vehicles', 'POST', { name: $('f-name').value, year: $('f-year').value, make: $('f-make').value, model: $('f-model').value, mileage: $('f-miles').value });
+    $('dlg').close(); loadGarage();
+  } catch (err) { $('f-err').textContent = err.message; }
+});
+
+/* ---------- vehicle ---------- */
+async function openVehicle(id) {
+  current = vehicles.find((v) => v.id === id); if (!current) return;
+  $('vh-name').textContent = current.name;
+  $('vh-sub').textContent = [current.year, current.make, current.model].filter(Boolean).join(' ');
+  $('vh-miles').textContent = fmtMiles(current.mileage);
+  $('l-date').value = new Date().toISOString().slice(0, 10);
+  $('l-miles').value = current.mileage ?? ''; $('l-notes').value = ''; $('l-err').textContent = '';
+  view('vehicle'); await loadLogs();
+}
+async function loadLogs() {
+  const { logs } = await api('/api/logs?vehicleId=' + current.id);
+  const t = $('timeline');
+  t.innerHTML = logs.length ? '' : '<div class="empty">No entries yet. Log your first service above.</div>';
+  logs.forEach((l) => {
+    const d = document.createElement('div'); d.className = 'entry';
+    d.innerHTML = `<div class="dot ${esc(l.type)}"></div><div class="eb"><div class="et"><b>${LABEL[l.type] || 'Other'}</b><span>${fmtDate(l.date)}</span></div>
+      <div class="em">${l.mileage != null ? fmtMiles(l.mileage) + ' miles' : ''}</div>${l.notes ? `<div class="en">${esc(l.notes)}</div>` : ''}
+      <button class="del">Delete</button></div>`;
+    d.querySelector('.del').addEventListener('click', async () => { await api('/api/logs?id=' + l.id, 'DELETE'); loadLogs(); });
+    t.appendChild(d);
+  });
+}
+$('l-add').addEventListener('click', async () => {
+  $('l-err').textContent = '';
+  try {
+    await api('/api/logs', 'POST', { vehicleId: current.id, type: $('l-type').value, date: $('l-date').value, mileage: $('l-miles').value, notes: $('l-notes').value });
+    const m = parseInt($('l-miles').value, 10);
+    if (m && m > (current.mileage || 0)) { current.mileage = m; $('vh-miles').textContent = fmtMiles(m); }
+    $('l-notes').value = ''; loadLogs();
+  } catch (err) { $('l-err').textContent = err.message; }
+});
+$('back').addEventListener('click', loadGarage);
+$('del-v').addEventListener('click', async () => {
+  if (!confirm('Delete "' + current.name + '" and all its history? This cannot be undone.')) return;
+  await api('/api/vehicles?id=' + current.id, 'DELETE'); loadGarage();
+});
+
+/* ---------- boot ---------- */
+(async () => {
+  try {
+    const me = await api('/api/auth');
+    if (me.user) await loadGarage(); else showAuth(me.canRegister);
+  } catch (err) {
+    showAuth(false); $('auth-err').textContent = err.message;
+  }
+})();
+</script>
+</body>
+</html>
